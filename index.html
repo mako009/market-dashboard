@@ -2,222 +2,583 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="manifest" href="manifest.json">
   <title>Market Dashboard</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #0a0a0f;
-      font-family: monospace;
-      color: #e0e0e8;
-      height: 100vh;
-      overflow: hidden;
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0a0f;font-family:'SF Mono',Consolas,monospace;color:#e0e0e8;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none}
+    /* HEADER */
+    .header{display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #1e1e2e;background:#0e0e16;height:36px;font-size:11px;gap:8px;flex-shrink:0}
+    .header-left{display:flex;align-items:center;gap:10px}
+    .logo{color:#00d4ff;font-weight:700;font-size:12px;white-space:nowrap}
+    .logo span{color:#6a6a7a;font-weight:300}
+    /* TABS */
+    .nav-tabs{display:flex;gap:2px}
+    .nav-tab{background:transparent;border:1px solid #1e1e2e;color:#6a6a7a;padding:3px 10px;font-family:inherit;font-size:10px;cursor:pointer;border-radius:3px;transition:.15s;white-space:nowrap}
+    .nav-tab:hover{border-color:#00d4ff;color:#00d4ff}
+    .nav-tab.active{border-color:#00d4ff;color:#0a0a0f;background:#00d4ff}
+    /* CONTROLS */
+    .ctrl-group{display:flex;gap:2px;align-items:center}
+    .ctrl-btn{background:transparent;border:1px solid #1e1e2e;color:#6a6a7a;padding:2px 7px;font-family:inherit;font-size:10px;cursor:pointer;border-radius:3px;transition:.15s;white-space:nowrap}
+    .ctrl-btn:hover{border-color:#00d4ff;color:#00d4ff}
+    .ctrl-btn.active{border-color:#00d4ff;color:#0a0a0f;background:#00d4ff}
+    .ctrl-sep{width:1px;height:14px;background:#1e1e2e;margin:0 4px}
+    .clock{color:#6a6a7a;font-size:10px;white-space:nowrap}
+    /* MAIN CONTENT */
+    .page{display:none;height:calc(100vh - 36px);overflow:hidden}
+    .page.active{display:block}
+    /* CHART GRID */
+    .grid{display:grid;gap:1px;height:100%;background:#1e1e2e}
+    .cell{position:relative;background:#12121a;overflow:hidden}
+    .cell-label{position:absolute;top:0;left:0;z-index:10;padding:1px 6px;font-size:8px;font-weight:700;letter-spacing:.5px;color:#0a0a0f;border-bottom-right-radius:3px;pointer-events:none}
+    .lb-eq{background:#00d4ff}.lb-vol{background:#ff3860}.lb-rate{background:#ffb800}.lb-fx{background:#a78bfa}.lb-cmd{background:#00e676}
+    /* PERFORMANCE TABLE */
+    #perfPage{overflow-y:auto;padding:8px}
+    .perf-section{margin-bottom:12px}
+    .perf-section h3{color:#6a6a7a;font-size:11px;font-weight:400;letter-spacing:1px;padding:4px 8px;border-bottom:1px solid #1e1e2e;margin-bottom:2px}
+    .perf-table{width:100%;border-collapse:collapse;font-size:11px}
+    .perf-table th{color:#6a6a7a;font-weight:400;text-align:right;padding:3px 8px;font-size:10px;border-bottom:1px solid #1a1a2a;position:sticky;top:0;background:#0e0e16;z-index:2}
+    .perf-table th:first-child,.perf-table td:first-child{text-align:left;color:#e0e0e8;font-weight:600}
+    .perf-table th:nth-child(2),.perf-table td:nth-child(2){text-align:right;color:#8888a0}
+    .perf-table td{text-align:right;padding:3px 8px;border-bottom:1px solid #0e0e16;font-variant-numeric:tabular-nums}
+    .perf-table tr:hover{background:#16162a}
+    .pos{color:#00e676}.neg{color:#ff3860}.neutral{color:#6a6a7a}
+    .rsi-high{color:#ff3860}.rsi-low{color:#00e676}.rsi-mid{color:#e0e0e8}
+    .bb-high{color:#ff3860;font-size:10px}.bb-low{color:#00e676;font-size:10px}.bb-mid{color:#6a6a7a;font-size:10px}
+    .perf-loading{text-align:center;color:#6a6a7a;padding:40px;font-size:12px}
+    .sort-icon{cursor:pointer;opacity:.5}.sort-icon:hover{opacity:1}.sort-icon.asc::after{content:'▲'}.sort-icon.desc::after{content:'▼'}
+    /* SECTOR COMPARE */
+    #sectorPage{overflow:hidden}
+    .sector-chart-wrap{height:100%;width:100%}
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      .header{padding:0 6px;gap:4px;height:32px}
+      .logo{font-size:10px}
+      .ctrl-btn,.nav-tab{font-size:9px;padding:2px 5px}
+      .perf-table{font-size:10px}
+      .perf-table th,.perf-table td{padding:2px 4px}
     }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 16px;
-      border-bottom: 1px solid #1e1e2e;
-      background: #0e0e16;
-      height: 32px;
-      font-size: 11px;
-    }
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .logo { color: #00d4ff; font-weight: 700; }
-    .logo span { color: #6a6a7a; font-weight: 300; }
-    .tf-controls { display: flex; gap: 2px; }
-    .tf-btn {
-      background: transparent;
-      border: 1px solid #1e1e2e;
-      color: #6a6a7a;
-      padding: 2px 8px;
-      font-family: monospace;
-      font-size: 10px;
-      cursor: pointer;
-      transition: all 0.15s;
-      border-radius: 3px;
-    }
-    .tf-btn:hover { border-color: #00d4ff; color: #00d4ff; }
-    .tf-btn.active { border-color: #00d4ff; color: #0a0a0f; background: #00d4ff; }
-    .clock { color: #6a6a7a; font-size: 10px; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 1px;
-      height: calc(100vh - 32px);
-      background: #1e1e2e;
-    }
-    .cell {
-      position: relative;
-      background: #12121a;
-      overflow: hidden;
-    }
-    .cell-label {
-      position: absolute;
-      top: 0; left: 0;
-      z-index: 10;
-      padding: 1px 6px;
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #0a0a0f;
-      border-bottom-right-radius: 3px;
-      pointer-events: none;
-    }
-    .lb-eq { background: #00d4ff; }
-    .lb-vol { background: #ff3860; }
-    .lb-rate { background: #ffb800; }
-    .lb-fx { background: #a78bfa; }
-    .lb-cmd { background: #00e676; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="header-left">
-      <span class="logo">MKTDASH <span>// Multi-Asset</span></span>
-      <div class="tf-controls" id="tfControls">
-        <button class="tf-btn" data-tf="1">1m</button>
-        <button class="tf-btn" data-tf="5">5m</button>
-        <button class="tf-btn" data-tf="15">15m</button>
-        <button class="tf-btn" data-tf="30">30m</button>
-        <button class="tf-btn" data-tf="60">1H</button>
-        <button class="tf-btn" data-tf="240">4H</button>
-        <button class="tf-btn" data-tf="D">1D</button>
-        <button class="tf-btn" data-tf="W">1W</button>
-        <button class="tf-btn" data-tf="M">1M</button>
+      <span class="logo">MKTDASH <span>// v2</span></span>
+      <div class="nav-tabs" id="navTabs">
+        <button class="nav-tab active" data-page="chart">📊 Charts</button>
+        <button class="nav-tab" data-page="perf">📋 Performance</button>
+        <button class="nav-tab" data-page="sector">📈 Sectors</button>
       </div>
     </div>
-    <div class="clock" id="clock"></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <!-- Chart controls (visible on chart page) -->
+      <div id="chartControls" class="ctrl-group">
+        <div class="ctrl-group" id="layoutBtns">
+          <button class="ctrl-btn" data-layout="2x2">2×2</button>
+          <button class="ctrl-btn active" data-layout="3x3">3×3</button>
+          <button class="ctrl-btn" data-layout="4x3">4×3</button>
+        </div>
+        <div class="ctrl-sep"></div>
+        <div class="ctrl-group" id="watchlistBtns">
+          <button class="ctrl-btn active" data-wl="main">Main</button>
+          <button class="ctrl-btn" data-wl="sectors">Sectors</button>
+          <button class="ctrl-btn" data-wl="factors">Factors</button>
+        </div>
+        <div class="ctrl-sep"></div>
+        <div class="ctrl-group" id="tfControls">
+          <button class="ctrl-btn" data-tf="1">1m</button>
+          <button class="ctrl-btn" data-tf="5">5m</button>
+          <button class="ctrl-btn" data-tf="15">15m</button>
+          <button class="ctrl-btn" data-tf="60">1H</button>
+          <button class="ctrl-btn" data-tf="240">4H</button>
+          <button class="ctrl-btn active" data-tf="D">1D</button>
+          <button class="ctrl-btn" data-tf="W">1W</button>
+        </div>
+      </div>
+      <!-- Perf controls (visible on perf page) -->
+      <div id="perfControls" class="ctrl-group" style="display:none">
+        <button class="ctrl-btn active" data-sort="1d">Sort: 1D</button>
+        <button class="ctrl-btn" data-sort="1w">1W</button>
+        <button class="ctrl-btn" data-sort="1m">1M</button>
+        <button class="ctrl-btn" data-sort="3m">3M</button>
+      </div>
+      <!-- Sector controls -->
+      <div id="sectorControls" class="ctrl-group" style="display:none">
+        <button class="ctrl-btn active" data-period="1m">1M</button>
+        <button class="ctrl-btn" data-period="3m">3M</button>
+        <button class="ctrl-btn" data-period="all">All</button>
+      </div>
+      <div class="clock" id="clock"></div>
+    </div>
   </div>
-  <div class="grid" id="grid"></div>
+
+  <!-- PAGE: Charts -->
+  <div class="page active" id="chartPage">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- PAGE: Performance -->
+  <div class="page" id="perfPage">
+    <div class="perf-loading" id="perfLoading">Loading data from Google Sheets...</div>
+    <div id="perfContent" style="display:none"></div>
+  </div>
+
+  <!-- PAGE: Sector Compare -->
+  <div class="page" id="sectorPage">
+    <div class="sector-chart-wrap" id="sectorChartWrap"></div>
+  </div>
 
   <script>
-    // Studies presets
-    const withVolume = ["BB@tv-basicstudies", "RSI@tv-basicstudies", "Volume@tv-basicstudies"];
-    const withVolumeMacd = [...withVolume, "MACD@tv-basicstudies"];
-    const noVolume = ["BB@tv-basicstudies", "RSI@tv-basicstudies"];
+    // ============================================================
+    // GLOBAL STATE
+    // ============================================================
+    let currentPage = 'chart';
+    let currentLayout = '3x3';
+    let currentWatchlist = 'main';
+    let currentTF = 'D';
+    let currentPerfSort = '1d';
+    let currentSectorPeriod = '1m';
+    let perfData = null;
 
-    const charts = [
-      { symbol: "NASDAQ:QQQ",      label: "QQQ",        cls: "lb-eq",   studies: withVolumeMacd },
-      { symbol: "AMEX:IWM",        label: "IWM",        cls: "lb-eq",   studies: withVolumeMacd },
-      { symbol: "PEPPERSTONE:VIX", label: "VIX",        cls: "lb-vol",  studies: withVolume },
-      { symbol: "AMEX:UVXY",       label: "VVIX→UVXY",  cls: "lb-vol",  studies: withVolume },
-      { symbol: "NASDAQ:SHY",      label: "US02Y→SHY",  cls: "lb-rate", studies: withVolume },
-      { symbol: "NASDAQ:TLT",      label: "US10Y→TLT",  cls: "lb-rate", studies: withVolume },
-      { symbol: "AMEX:UUP",        label: "DXY→UUP",    cls: "lb-fx",   studies: withVolume },
-      { symbol: "TVC:USOIL",       label: "USOIL",      cls: "lb-cmd",  studies: noVolume },
-      { symbol: "TVC:GOLD",        label: "GOLD",       cls: "lb-cmd",  studies: noVolume },
-    ];
+    const SHEET_ID = '1Geh0iAaG6NufD4GuSWG-WNzGVhpinEd3RvZsv8HQtcY';
+    const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
-    function getInterval() {
-      return location.hash.replace('#', '') || 'D';
+    // ============================================================
+    // STUDIES PRESETS
+    // ============================================================
+    const S_VOL = ["BB@tv-basicstudies","RSI@tv-basicstudies","Volume@tv-basicstudies"];
+    const S_VOL_MACD = [...S_VOL,"MACD@tv-basicstudies"];
+    const S_NO_VOL = ["BB@tv-basicstudies","RSI@tv-basicstudies"];
+
+    // ============================================================
+    // WATCHLISTS
+    // ============================================================
+    const watchlists = {
+      main: [
+        {symbol:"NASDAQ:QQQ",label:"QQQ",cls:"lb-eq",studies:S_VOL_MACD},
+        {symbol:"AMEX:IWM",label:"IWM",cls:"lb-eq",studies:S_VOL_MACD},
+        {symbol:"PEPPERSTONE:VIX",label:"VIX",cls:"lb-vol",studies:S_VOL},
+        {symbol:"AMEX:UVXY",label:"VVIX→UVXY",cls:"lb-vol",studies:S_VOL},
+        {symbol:"NASDAQ:SHY",label:"US02Y→SHY",cls:"lb-rate",studies:S_VOL},
+        {symbol:"NASDAQ:TLT",label:"US10Y→TLT",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:UUP",label:"DXY→UUP",cls:"lb-fx",studies:S_VOL},
+        {symbol:"TVC:USOIL",label:"USOIL",cls:"lb-cmd",studies:S_NO_VOL},
+        {symbol:"TVC:GOLD",label:"GOLD",cls:"lb-cmd",studies:S_NO_VOL},
+        {symbol:"BINANCE:BTCUSD",label:"BTC",cls:"lb-cmd",studies:S_NO_VOL},
+        {symbol:"AMEX:SMH",label:"SMH",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:XLE",label:"XLE",cls:"lb-eq",studies:S_VOL},
+      ],
+      sectors: [
+        {symbol:"AMEX:XLE",label:"Energy",cls:"lb-cmd",studies:S_VOL},
+        {symbol:"AMEX:XLB",label:"Materials",cls:"lb-cmd",studies:S_VOL},
+        {symbol:"AMEX:XLI",label:"Industrials",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:XLY",label:"ConsDisc",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:XLP",label:"ConsStap",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:XLV",label:"HealthCare",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:XLF",label:"Financials",cls:"lb-fx",studies:S_VOL},
+        {symbol:"AMEX:XLK",label:"Technology",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:XLC",label:"CommSvc",cls:"lb-vol",studies:S_VOL},
+        {symbol:"AMEX:XLU",label:"Utilities",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:XLRE",label:"RealEstate",cls:"lb-fx",studies:S_VOL},
+        {symbol:"AMEX:SMH",label:"Semicon",cls:"lb-eq",studies:S_VOL},
+      ],
+      factors: [
+        {symbol:"AMEX:IWD",label:"LargeValue",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:IWB",label:"LargeBlend",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:IWF",label:"LargeGrowth",cls:"lb-eq",studies:S_VOL},
+        {symbol:"AMEX:IWN",label:"SmallValue",cls:"lb-fx",studies:S_VOL},
+        {symbol:"AMEX:IWM",label:"SmallBlend",cls:"lb-fx",studies:S_VOL},
+        {symbol:"AMEX:IWO",label:"SmallGrowth",cls:"lb-fx",studies:S_VOL},
+        {symbol:"AMEX:IWS",label:"MidValue",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:IWR",label:"MidBlend",cls:"lb-rate",studies:S_VOL},
+        {symbol:"AMEX:IWP",label:"MidGrowth",cls:"lb-rate",studies:S_VOL},
+      ],
+    };
+
+    // ============================================================
+    // PERF TABLE SECTIONS (matching screenshot layout)
+    // ============================================================
+    const perfSections = {
+      'Indices & Macro': ['QQQ','DIA','IWM','VIX','VVIX','DXY','TIPS'],
+      'Commodities & Crypto': ['BITCOIN','USOIL','GOLD'],
+      'Bond Yields (Change in bp)': ['US02Y','US5Y','US10Y','US30Y'],
+      'Major Sectors (Sorted by Daily)': ['XLE','XLB','XLP','XLU','XLI','XLRE','XLY','XLF','XLV','XLC','XLK'],
+      'Sub Sectors (Sorted by Daily)': ['XME','GDX','TAN','PBW','XOP','OIH','ITB','KRE','AMLP','JETS','MOO','XRT','PHO','KIE','IBB','VNQ','SMH','BITO','FDN','FXI'],
+    };
+    const bondTickers = ['US02Y','US5Y','US10Y','US30Y'];
+
+    // ============================================================
+    // LAYOUT HELPERS
+    // ============================================================
+    function getLayoutDim(layout) {
+      const m = layout.match(/(\d+)x(\d+)/);
+      return { cols: +m[1], rows: +m[2] };
     }
 
-    function highlightTF(tf) {
-      document.querySelectorAll('.tf-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.tf === tf);
-      });
-    }
-
+    // ============================================================
+    // CHART RENDERING
+    // ============================================================
     function renderCharts() {
-      const interval = getInterval();
-      highlightTF(interval);
+      const {cols, rows} = getLayoutDim(currentLayout);
       const grid = document.getElementById('grid');
+      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
       grid.innerHTML = '';
+
+      const list = watchlists[currentWatchlist];
+      const count = cols * rows;
+      const visible = list.slice(0, count);
 
       const gridH = grid.clientHeight;
       const gridW = grid.clientWidth;
-      const cellH = Math.floor((gridH - 2) / 3);
-      const cellW = Math.floor((gridW - 2) / 3);
+      const cellH = Math.floor((gridH - (rows-1)) / rows);
+      const cellW = Math.floor((gridW - (cols-1)) / cols);
 
-      charts.forEach(c => {
+      visible.forEach(c => {
         const cell = document.createElement('div');
         cell.className = 'cell';
-
-        const label = document.createElement('span');
-        label.className = `cell-label ${c.cls}`;
-        label.textContent = c.label;
-        cell.appendChild(label);
+        const lbl = document.createElement('span');
+        lbl.className = `cell-label ${c.cls}`;
+        lbl.textContent = c.label;
+        cell.appendChild(lbl);
 
         const iframe = document.createElement('iframe');
         iframe.style.cssText = `width:${cellW}px;height:${cellH}px;border:none;display:block;`;
         cell.appendChild(iframe);
         grid.appendChild(cell);
 
-        const config = {
-          width: cellW,
-          height: cellH,
-          symbol: c.symbol,
-          interval: interval,
-          timezone: "Asia/Tokyo",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          backgroundColor: "rgba(18,18,26,1)",
-          gridColor: "rgba(30,30,46,0.6)",
-          hide_side_toolbar: true,
-          hide_legend: true,
-          allow_symbol_change: true,
-          save_image: false,
-          enable_publishing: false,
-          disabled_features: [
-            "left_toolbar",
-            "create_volume_indicator_by_default",
-            "legend_widget"
-          ],
-          studies: c.studies,
-          support_host: "https://www.tradingview.com"
+        const cfg = {
+          width:cellW,height:cellH,symbol:c.symbol,interval:currentTF,timezone:"Asia/Tokyo",
+          theme:"dark",style:"1",locale:"en",backgroundColor:"rgba(18,18,26,1)",
+          gridColor:"rgba(30,30,46,0.6)",hide_side_toolbar:true,hide_legend:true,
+          allow_symbol_change:true,save_image:false,enable_publishing:false,
+          disabled_features:["left_toolbar","create_volume_indicator_by_default","legend_widget"],
+          studies:c.studies,support_host:"https://www.tradingview.com"
         };
-
-        const html = `<!DOCTYPE html>
-<html><head><style>
-  html, body { margin:0; padding:0; overflow:hidden; width:${cellW}px; height:${cellH}px; }
-  .tradingview-widget-container { width:${cellW}px; height:${cellH}px; }
-</style></head><body>
-<div class="tradingview-widget-container">
-<div class="tradingview-widget-container__widget"></div>
-<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-${JSON.stringify(config)}
-<\/script>
-</div></body></html>`;
-
+        const html = `<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:${cellW}px;height:${cellH}px}</style></head><body><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>${JSON.stringify(cfg)}<\/script></div></body></html>`;
         const doc = iframe.contentDocument || iframe.contentWindow.document;
-        doc.open();
-        doc.write(html);
-        doc.close();
+        doc.open(); doc.write(html); doc.close();
       });
     }
 
+    // ============================================================
+    // PERFORMANCE TABLE
+    // ============================================================
+    async function loadPerfData() {
+      try {
+        const res = await fetch(SHEET_CSV_URL);
+        const text = await res.text();
+        perfData = parseCSV(text);
+        renderPerfTable();
+      } catch(e) {
+        document.getElementById('perfLoading').textContent = 'Error loading data: ' + e.message;
+      }
+    }
+
+    function parseCSV(text) {
+      const lines = text.split('\n').filter(l => l.trim());
+      const headers = parseCSVLine(lines[0]);
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const vals = parseCSVLine(lines[i]);
+        if (!vals[0]) continue;
+        const row = {};
+        headers.forEach((h, idx) => { row[h] = vals[idx]; });
+        rows.push(row);
+      }
+      return { headers, rows };
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current.trim());
+      return result.map(v => v.replace(/^"|"$/g, ''));
+    }
+
+    function calcRSI(prices, period=14) {
+      if (prices.length < period+1) return null;
+      let gains=0, losses=0;
+      for (let i=1; i<=period; i++) {
+        const diff = prices[i] - prices[i-1];
+        if (diff>0) gains+=diff; else losses-=diff;
+      }
+      let avgGain = gains/period;
+      let avgLoss = losses/period;
+      for (let i=period+1; i<prices.length; i++) {
+        const diff = prices[i]-prices[i-1];
+        avgGain = (avgGain*(period-1)+(diff>0?diff:0))/period;
+        avgLoss = (avgLoss*(period-1)+(diff<0?-diff:0))/period;
+      }
+      if (avgLoss===0) return 100;
+      const rs = avgGain/avgLoss;
+      return 100-(100/(1+rs));
+    }
+
+    function calcBB(prices, period=20) {
+      if (prices.length < period) return null;
+      const slice = prices.slice(-period);
+      const mean = slice.reduce((a,b)=>a+b,0)/period;
+      const variance = slice.reduce((a,b)=>a+(b-mean)**2,0)/period;
+      const std = Math.sqrt(variance);
+      const upper = mean + 2*std;
+      const lower = mean - 2*std;
+      const current = prices[prices.length-1];
+      if (upper===lower) return 50;
+      return ((current-lower)/(upper-lower))*100;
+    }
+
+    function renderPerfTable() {
+      if (!perfData) return;
+      const content = document.getElementById('perfContent');
+      content.style.display = 'block';
+      document.getElementById('perfLoading').style.display = 'none';
+
+      const {headers, rows} = perfData;
+      // rows[0] = latest, rows[1] = previous day, etc. (newest first from sheet)
+
+      let html = '';
+      for (const [sectionName, tickers] of Object.entries(perfSections)) {
+        const isBond = sectionName.includes('Bond');
+        let tableRows = [];
+
+        for (const ticker of tickers) {
+          const colName = headers.find(h => h === ticker || h === `"${ticker}"`);
+          if (!colName) continue;
+
+          // Get prices (newest first → reverse for calc)
+          const allPrices = rows.map(r => parseFloat(r[colName])).filter(v => !isNaN(v));
+          if (allPrices.length < 2) continue;
+
+          const current = allPrices[0];
+          const prev = allPrices[1];
+          const pricesOldFirst = [...allPrices].reverse();
+
+          // Period lookbacks (approximate business days)
+          const w1 = allPrices.length >= 6 ? allPrices[5] : null;   // ~5 trading days
+          const m1 = allPrices.length >= 22 ? allPrices[21] : null;  // ~21 trading days
+          const m3 = allPrices.length >= 33 ? allPrices[allPrices.length-1] : null; // oldest available
+
+          let d1, prevChg, w1Chg, m1Chg, m3Chg;
+
+          if (isBond) {
+            // Bond yields: show change in basis points
+            d1 = (current - prev) * 100;
+            prevChg = prev;
+            w1Chg = w1 !== null ? (current - w1) * 100 : null;
+            m1Chg = m1 !== null ? (current - m1) * 100 : null;
+            m3Chg = m3 !== null ? (current - m3) * 100 : null;
+          } else {
+            // Percentage change
+            d1 = ((current - prev) / prev) * 100;
+            prevChg = ((prev - (allPrices[2]||prev)) / (allPrices[2]||prev)) * 100;
+            w1Chg = w1 !== null ? ((current - w1) / w1) * 100 : null;
+            m1Chg = m1 !== null ? ((current - m1) / m1) * 100 : null;
+            m3Chg = m3 !== null ? ((current - m3) / m3) * 100 : null;
+          }
+
+          const rsi = calcRSI(pricesOldFirst);
+          const bb = calcBB(pricesOldFirst);
+
+          tableRows.push({ ticker, current, d1, prevChg, w1Chg, m1Chg, m3Chg, rsi, bb, isBond });
+        }
+
+        // Sort by current sort column
+        const sortKey = {'1d':'d1','1w':'w1Chg','1m':'m1Chg','3m':'m3Chg'}[currentPerfSort] || 'd1';
+        tableRows.sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0));
+
+        html += `<div class="perf-section"><h3>${sectionName}</h3><table class="perf-table">`;
+        html += `<tr><th>Ticker</th><th>${isBond?'Yield':'Price'}</th><th>1D</th><th>Prev</th><th>1W</th><th>1M</th><th>3M</th><th>RSI</th><th>BB</th></tr>`;
+
+        for (const r of tableRows) {
+          const fmt = (v, isBp) => {
+            if (v === null || v === undefined) return '<td class="neutral">—</td>';
+            const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neutral';
+            const prefix = v > 0 ? '+' : '';
+            return `<td class="${cls}">${prefix}${isBp ? v.toFixed(1) : v.toFixed(2)}%</td>`;
+          };
+          const rsiCls = r.rsi === null ? 'neutral' : r.rsi >= 70 ? 'rsi-high' : r.rsi <= 30 ? 'rsi-low' : 'rsi-mid';
+          const rsiVal = r.rsi !== null ? r.rsi.toFixed(0) : '—';
+          const bbCls = r.bb === null ? 'bb-mid' : r.bb >= 80 ? 'bb-high' : r.bb <= 20 ? 'bb-low' : 'bb-mid';
+          const bbVal = r.bb !== null ? r.bb.toFixed(0) : '—';
+          const priceStr = r.isBond ? r.current.toFixed(2) + '%' : r.current.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+          html += `<tr>`;
+          html += `<td style="color:#00d4ff">${r.ticker}</td>`;
+          html += `<td>${priceStr}</td>`;
+          html += fmt(r.d1, r.isBond);
+          html += fmt(r.prevChg, r.isBond);
+          html += fmt(r.w1Chg, r.isBond);
+          html += fmt(r.m1Chg, r.isBond);
+          html += fmt(r.m3Chg, r.isBond);
+          html += `<td class="${rsiCls}">${rsiVal}</td>`;
+          html += `<td class="${bbCls}">${bbVal}</td>`;
+          html += `</tr>`;
+        }
+        html += `</table></div>`;
+      }
+
+      content.innerHTML = html;
+    }
+
+    // ============================================================
+    // SECTOR COMPARISON CHART (TradingView widget)
+    // ============================================================
+    function renderSectorChart() {
+      const wrap = document.getElementById('sectorChartWrap');
+      wrap.innerHTML = '';
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+
+      const symbols = [
+        {s:"AMEX:XLE",d:"Energy"},{s:"AMEX:XLB",d:"Materials"},{s:"AMEX:XLI",d:"Industrials"},
+        {s:"AMEX:XLY",d:"ConsDisc"},{s:"AMEX:XLP",d:"ConsStap"},{s:"AMEX:XLV",d:"HealthCare"},
+        {s:"AMEX:XLF",d:"Financials"},{s:"AMEX:XLK",d:"Technology"},{s:"AMEX:XLC",d:"CommSvc"},
+        {s:"AMEX:XLU",d:"Utilities"},{s:"AMEX:XLRE",d:"RealEstate"}
+      ];
+
+      const rangeMap = {'1m':'1M','3m':'3M','all':'ALL'};
+      const range = rangeMap[currentSectorPeriod] || '1M';
+
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = `width:${w}px;height:${h}px;border:none;display:block;`;
+      wrap.appendChild(iframe);
+
+      const cfg = {
+        width:w,height:h,
+        symbol:"AMEX:XLK",
+        interval:"D",
+        timezone:"Asia/Tokyo",
+        theme:"dark",
+        style:"1",
+        locale:"en",
+        backgroundColor:"rgba(18,18,26,1)",
+        gridColor:"rgba(30,30,46,0.6)",
+        hide_side_toolbar:true,
+        hide_legend:false,
+        allow_symbol_change:false,
+        save_image:false,
+        enable_publishing:false,
+        range:range,
+        compareSymbols: symbols.filter(s=>s.s!=="AMEX:XLK").map(s=>({symbol:s.s,position:"SameScale"})),
+        disabled_features:["left_toolbar","create_volume_indicator_by_default"],
+        support_host:"https://www.tradingview.com"
+      };
+
+      const htmlStr = `<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:${w}px;height:${h}px}</style></head><body><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>${JSON.stringify(cfg)}<\/script></div></body></html>`;
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open(); doc.write(htmlStr); doc.close();
+    }
+
+    // ============================================================
+    // PAGE SWITCHING
+    // ============================================================
+    function switchPage(page) {
+      currentPage = page;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+      const controls = {chart:'chartControls',perf:'perfControls',sector:'sectorControls'};
+      Object.values(controls).forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById(controls[page]).style.display = 'flex';
+
+      if (page === 'chart') {
+        document.getElementById('chartPage').classList.add('active');
+        requestAnimationFrame(() => requestAnimationFrame(renderCharts));
+      } else if (page === 'perf') {
+        document.getElementById('perfPage').classList.add('active');
+        if (!perfData) loadPerfData(); else renderPerfTable();
+      } else if (page === 'sector') {
+        document.getElementById('sectorPage').classList.add('active');
+        requestAnimationFrame(() => requestAnimationFrame(renderSectorChart));
+      }
+    }
+
+    // ============================================================
+    // EVENT HANDLERS
+    // ============================================================
+    document.getElementById('navTabs').addEventListener('click', e => {
+      const tab = e.target.closest('.nav-tab');
+      if (tab) switchPage(tab.dataset.page);
+    });
+
     document.getElementById('tfControls').addEventListener('click', e => {
-      const btn = e.target.closest('.tf-btn');
+      const btn = e.target.closest('.ctrl-btn');
       if (!btn) return;
-      const tf = btn.dataset.tf;
-      if (tf === getInterval()) return;
-      location.hash = tf;
+      currentTF = btn.dataset.tf;
+      document.querySelectorAll('#tfControls .ctrl-btn').forEach(b => b.classList.toggle('active', b.dataset.tf === currentTF));
       renderCharts();
     });
 
+    document.getElementById('layoutBtns').addEventListener('click', e => {
+      const btn = e.target.closest('.ctrl-btn');
+      if (!btn) return;
+      currentLayout = btn.dataset.layout;
+      document.querySelectorAll('#layoutBtns .ctrl-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));
+      renderCharts();
+    });
+
+    document.getElementById('watchlistBtns').addEventListener('click', e => {
+      const btn = e.target.closest('.ctrl-btn');
+      if (!btn) return;
+      currentWatchlist = btn.dataset.wl;
+      document.querySelectorAll('#watchlistBtns .ctrl-btn').forEach(b => b.classList.toggle('active', b.dataset.wl === currentWatchlist));
+      renderCharts();
+    });
+
+    document.getElementById('perfControls').addEventListener('click', e => {
+      const btn = e.target.closest('.ctrl-btn');
+      if (!btn) return;
+      currentPerfSort = btn.dataset.sort;
+      document.querySelectorAll('#perfControls .ctrl-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === currentPerfSort));
+      renderPerfTable();
+    });
+
+    document.getElementById('sectorControls').addEventListener('click', e => {
+      const btn = e.target.closest('.ctrl-btn');
+      if (!btn) return;
+      currentSectorPeriod = btn.dataset.period;
+      document.querySelectorAll('#sectorControls .ctrl-btn').forEach(b => b.classList.toggle('active', b.dataset.period === currentSectorPeriod));
+      renderSectorChart();
+    });
+
+    // Clock
     function updateClock() {
       const now = new Date();
-      const jst = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-      const ny = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
-      document.getElementById('clock').textContent = 'JST ' + jst + ' · NY ' + ny;
+      const jst = now.toLocaleTimeString('en-US',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+      const ny = now.toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false});
+      document.getElementById('clock').textContent = 'JST '+jst+' · NY '+ny;
     }
-    updateClock();
-    setInterval(updateClock, 1000);
+    updateClock(); setInterval(updateClock, 1000);
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        renderCharts();
-      });
-    });
+    // Init
+    requestAnimationFrame(() => requestAnimationFrame(renderCharts));
 
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(renderCharts, 500);
+      resizeTimer = setTimeout(() => {
+        if (currentPage === 'chart') renderCharts();
+        else if (currentPage === 'sector') renderSectorChart();
+      }, 500);
     });
   </script>
 </body>
