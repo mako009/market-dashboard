@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      font-family: monospace;
+      color: #e0e0e8;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 16px;
+      border-bottom: 1px solid #1e1e2e;
+      background: #0e0e16;
+      height: 32px;
+      font-size: 11px;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .logo { color: #00d4ff; font-weight: 700; }
+    .logo span { color: #6a6a7a; font-weight: 300; }
+    .tf-controls { display: flex; gap: 2px; }
+    .tf-btn {
+      background: transparent;
+      border: 1px solid #1e1e2e;
+      color: #6a6a7a;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 3px;
+    }
+    .tf-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+    .tf-btn.active { border-color: #00d4ff; color: #0a0a0f; background: #00d4ff; }
+    .clock { color: #6a6a7a; font-size: 10px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 1px;
+      height: calc(100vh - 32px);
+      background: #1e1e2e;
+    }
+    .cell {
+      position: relative;
+      background: #12121a;
+      overflow: hidden;
+    }
+    .cell-label {
+      position: absolute;
+      top: 0; left: 0;
+      z-index: 10;
+      padding: 1px 6px;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #0a0a0f;
+      border-bottom-right-radius: 3px;
+      pointer-events: none;
+    }
+    .lb-eq { background: #00d4ff; }
+    .lb-vol { background: #ff3860; }
+    .lb-rate { background: #ffb800; }
+    .lb-fx { background: #a78bfa; }
+    .lb-cmd { background: #00e676; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <span class="logo">MKTDASH <span>// Multi-Asset</span></span>
+      <div class="tf-controls" id="tfControls">
+        <button class="tf-btn" data-tf="1">1m</button>
+        <button class="tf-btn" data-tf="5">5m</button>
+        <button class="tf-btn" data-tf="15">15m</button>
+        <button class="tf-btn" data-tf="30">30m</button>
+        <button class="tf-btn" data-tf="60">1H</button>
+        <button class="tf-btn" data-tf="240">4H</button>
+        <button class="tf-btn" data-tf="D">1D</button>
+        <button class="tf-btn" data-tf="W">1W</button>
+        <button class="tf-btn" data-tf="M">1M</button>
+      </div>
+    </div>
+    <div class="clock" id="clock"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    // Studies presets
+    const withVolume = ["BB@tv-basicstudies", "RSI@tv-basicstudies", "Volume@tv-basicstudies"];
+    const withVolumeMacd = [...withVolume, "MACD@tv-basicstudies"];
+    const noVolume = ["BB@tv-basicstudies", "RSI@tv-basicstudies"];
+
+    const charts = [
+      { symbol: "NASDAQ:QQQ",      label: "QQQ",        cls: "lb-eq",   studies: withVolumeMacd },
+      { symbol: "AMEX:IWM",        label: "IWM",        cls: "lb-eq",   studies: withVolumeMacd },
+      { symbol: "PEPPERSTONE:VIX", label: "VIX",        cls: "lb-vol",  studies: withVolume },
+      { symbol: "AMEX:UVXY",       label: "VVIX→UVXY",  cls: "lb-vol",  studies: withVolume },
+      { symbol: "NASDAQ:SHY",      label: "US02Y→SHY",  cls: "lb-rate", studies: withVolume },
+      { symbol: "NASDAQ:TLT",      label: "US10Y→TLT",  cls: "lb-rate", studies: withVolume },
+      { symbol: "AMEX:UUP",        label: "DXY→UUP",    cls: "lb-fx",   studies: withVolume },
+      { symbol: "TVC:USOIL",       label: "USOIL",      cls: "lb-cmd",  studies: noVolume },
+      { symbol: "TVC:GOLD",        label: "GOLD",       cls: "lb-cmd",  studies: noVolume },
+    ];
+
+    function getInterval() {
+      return location.hash.replace('#', '') || 'D';
+    }
+
+    function highlightTF(tf) {
+      document.querySelectorAll('.tf-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tf === tf);
+      });
+    }
+
+    function renderCharts() {
+      const interval = getInterval();
+      highlightTF(interval);
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      const gridH = grid.clientHeight;
+      const gridW = grid.clientWidth;
+      const cellH = Math.floor((gridH - 2) / 3);
+      const cellW = Math.floor((gridW - 2) / 3);
+
+      charts.forEach(c => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+
+        const label = document.createElement('span');
+        label.className = `cell-label ${c.cls}`;
+        label.textContent = c.label;
+        cell.appendChild(label);
+
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = `width:${cellW}px;height:${cellH}px;border:none;display:block;`;
+        cell.appendChild(iframe);
+        grid.appendChild(cell);
+
+        const config = {
+          width: cellW,
+          height: cellH,
+          symbol: c.symbol,
+          interval: interval,
+          timezone: "Asia/Tokyo",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          backgroundColor: "rgba(18,18,26,1)",
+          gridColor: "rgba(30,30,46,0.6)",
+          hide_side_toolbar: true,
+          hide_legend: true,
+          allow_symbol_change: true,
+          save_image: false,
+          enable_publishing: false,
+          disabled_features: [
+            "left_toolbar",
+            "create_volume_indicator_by_default",
+            "legend_widget"
+          ],
+          studies: c.studies,
+          support_host: "https://www.tradingview.com"
+        };
+
+        const html = `<!DOCTYPE html>
+<html><head><style>
+  html, body { margin:0; padding:0; overflow:hidden; width:${cellW}px; height:${cellH}px; }
+  .tradingview-widget-container { width:${cellW}px; height:${cellH}px; }
+</style></head><body>
+<div class="tradingview-widget-container">
+<div class="tradingview-widget-container__widget"></div>
+<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+${JSON.stringify(config)}
+<\/script>
+</div></body></html>`;
+
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+      });
+    }
+
+    document.getElementById('tfControls').addEventListener('click', e => {
+      const btn = e.target.closest('.tf-btn');
+      if (!btn) return;
+      const tf = btn.dataset.tf;
+      if (tf === getInterval()) return;
+      location.hash = tf;
+      renderCharts();
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const jst = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      const ny = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
+      document.getElementById('clock').textContent = 'JST ' + jst + ' · NY ' + ny;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        renderCharts();
+      });
+    });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(renderCharts, 500);
+    });
+  </script>
+</body>
+</html>
